@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CHI OILS - The Best Online Fragrance Store</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    header {
+      background-color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ddd;
+    }
+    header h1 {
+      color: grey;
+    }
+    nav a {
+      margin-left: 15px;
+      color: grey;
+      text-decoration: none;
+    }
+    .container {
+      padding: 2rem;
+    }
+    .form input {
+      display: block;
+      margin: 10px 0;
+      padding: 10px;
+      width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .form button {
+      padding: 10px 20px;
+      background-color: grey;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .product, .cart-item {
+      background: white;
+      border: 1px solid #ddd;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 5px;
+    }
+    .cart {
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>CHI OILS</h1>
+    <nav>
+      <a href="#" onclick="showSection('home')">Home</a>
+      <a href="#" onclick="showSection('add')">Add Product</a>
+      <a href="#" onclick="showSection('cart')">Cart</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <!-- Home -->
+    <section id="home-section">
+      <h2>Fragrances</h2>
+      <div id="product-list"></div>
+    </section>
+
+    <!-- Add Product -->
+    <section id="add-section" style="display:none;">
+      <h2>Add New Fragrance</h2>
+      <div class="form">
+        <input type="text" id="name" placeholder="Fragrance Name" />
+        <input type="number" id="price" placeholder="Price" />
+        <button onclick="addProduct()">Add Product</button>
+      </div>
+    </section>
+
+    <!-- Cart -->
+    <section id="cart-section" style="display:none;">
+      <h2>Your Cart</h2>
+      <div id="cart-list"></div>
+    </section>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script type="module">
+    // Firebase imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // TODO: Replace with your Firebase project config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const productList = document.getElementById("product-list");
+    const cartList = document.getElementById("cart-list");
+    let cart = [];
+
+    // Show/Hide sections
+    window.showSection = (section) => {
+      document.getElementById("home-section").style.display = section === "home" ? "block" : "none";
+      document.getElementById("add-section").style.display = section === "add" ? "block" : "none";
+      document.getElementById("cart-section").style.display = section === "cart" ? "block" : "none";
+      if (section === "home") loadProducts();
+      if (section === "cart") renderCart();
+    };
+
+    // Add product to Firestore
+    window.addProduct = async () => {
+      const name = document.getElementById("name").value;
+      const price = document.getElementById("price").value;
+      if (!name || !price) return alert("Please fill in all fields.");
+      await addDoc(collection(db, "fragrances"), {
+        name,
+        price: parseFloat(price)
+      });
+      alert("Product added!");
+      document.getElementById("name").value = "";
+      document.getElementById("price").value = "";
+      showSection('home');
+    };
+
+    // Load products
+    async function loadProducts() {
+      productList.innerHTML = "Loading...";
+      const snapshot = await getDocs(collection(db, "fragrances"));
+      productList.innerHTML = "";
+      snapshot.forEach(doc => {
+        const product = doc.data();
+        const div = document.createElement("div");
+        div.className = "product";
+        div.innerHTML = `
+          <strong>${product.name}</strong><br/>
+          $${product.price.toFixed(2)}<br/>
+          <button onclick='addToCart(${JSON.stringify(JSON.stringify(product))})'>Add to Cart</button>
+        `;
+        productList.appendChild(div);
+      });
+    }
+
+    // Add to cart
+    window.addToCart = (item) => {
+      cart.push(JSON.parse(JSON.parse(item))); // Double parse to handle inner string
+      alert("Added to cart");
+    };
+
+    // Render cart
+    function renderCart() {
+      cartList.innerHTML = "";
+      if (cart.length === 0) {
+        cartList.innerHTML = "<p>No items in cart.</p>";
+        return;
+      }
+      cart.forEach((item, idx) => {
+        const div = document.createElement("div");
+        div.className = "cart-item";
+        div.innerText = `${item.name} - $${item.price.toFixed(2)}`;
+        cartList.appendChild(div);
+      });
+    }
+
+    // Load initial products
+    loadProducts();
+  </script>
+</body>
+</html>
